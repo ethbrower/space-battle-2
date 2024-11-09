@@ -84,6 +84,17 @@ public class Client {
 			}
 			addUnitUpdate(unitUpdates);
 			addTileUpdate(tileUpdates);
+			for(int i = 0; i < tiles.length; i++){
+				for(int j = 0; j < tiles[0].length; j++){
+					if(tiles[i][j] != null){
+					System.out.println(tiles[i][j].id);
+					System.out.println(tiles[i][j].visible);
+					}
+					else{
+						System.out.println("null tile");
+					}
+				}
+			}
 		}
 	}
 
@@ -108,8 +119,8 @@ public class Client {
 			// Unit[] units = (Unit[])tileUpdate.get("units");
 			Tile tile = new Tile(tileUpdate);
 			tiles[x.intValue() + (tiles.length / 2)][y.intValue() + (tiles[0].length / 2)] = tile;
-		
 			//System.out.println("Units: \n " + units);
+
 		});
 	}
 
