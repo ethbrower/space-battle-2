@@ -156,13 +156,45 @@ public class Client {
 				
 			}
 		}
+		
+		Unit priorityUnit = idleUnits.get((int) Math.floor(Math.random() * idleUnits.size()));
 
-		Unit unit = idleUnits.get((int) Math.floor(Math.random() * idleUnits.size()));
-		Long unitId = unit.id;
 
+		for (Unit unit : units.values()) {
+			if (unit.resource != null) {
+				// If the unit has resources, prioritize returning it to base
+				if (priorityUnit == null || unit.getDistanceToBase() > priorityUnit.getDistanceToBase()) {
+					priorityUnit = unit;
+				}
+			}
+		}
+		if (priorityUnit == null) {
+			for (Unit unit_distance : units.values()) {
+				if (unit_distance.resource != null) {
+					// Prioritize the farthest unit 
+					if (priorityUnit == null || unit_distance.getDistanceToBase() > priorityUnit.getDistanceToBase()) {
+						priorityUnit = unit_distance;
+					}
+				}
+			}
+		}
+		for (Unit unit_melee : units.values()) {
+			if (unit_melee.hasEnemyNearby(tiles)) {
+				// If there are enemies, decide whether to engage with melee or ranged attack
+				if (priorityUnit == null || unit_melee.getDistanceToBase() > priorityUnit.getDistanceToBase()) {
+					priorityUnit = unit_melee;
+					// Initiate melee or shooting action based on unit's attack capabilities
+					//initiateCombatAction(unit);
+				}
+			}
+		}
+	
+			
+	
+		Long unitId = priorityUnit.id;
 		JSONArray commands = new JSONArray();
 		JSONObject command = new JSONObject();	
-		int[] coords = {unit.x.intValue(), unit.y.intValue()};
+		int[] coords = {priorityUnit.x.intValue(), priorityUnit.y.intValue()};
 		int[] baseCoords = {0,0};
 		
 		//Check to see if unit is directly next to a resource
@@ -184,17 +216,17 @@ public class Client {
 			nextToResource = true;
 			resourceDirection = "N";
 		}
-		if(nextToResource && unit.resource == 0){
+		if(nextToResource && priorityUnit.resource == 0){
 			command.put("command", "GATHER");
 			command.put("unit", unitId);
 			command.put("dir", resourceDirection);
 			commands.add(command);
-			System.out.println("Resource count:" + unit.resource);
+			System.out.println("Resource count:" + priorityUnit.resource);
 
 		}
 
 		//If the unit has resources
-		else if(unit.resource != null && unit.resource > 0){
+		else if(priorityUnit.resource != null && priorityUnit.resource > 0){
 			System.out.println("GO HOME\n\n");
 			if((Math.abs(coords[0] - baseCoords[0]) <= 1) && (Math.abs(coords[1] - baseCoords[1]) == 0) || (Math.abs(coords[0] - baseCoords[0]) == 0) && (Math.abs(coords[1] - baseCoords[1]) <= 1)){
 				System.out.println("DROP\n\n");
@@ -202,7 +234,7 @@ public class Client {
 				command.put("command", "DROP");
 				command.put("unit", unitId);
 				command.put("dir", direction);
-				command.put("value", unit.resource);
+				command.put("value", priorityUnit.resource);
 				commands.add(command);
 			}
 			else{
