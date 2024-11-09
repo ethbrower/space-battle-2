@@ -20,6 +20,7 @@ public class Client {
 	OutputStreamWriter out;
 	LinkedBlockingQueue<Map<String, Object>> updates;
 	Map<Long, Unit> units;
+	Tile[][] tiles;
 
 	public Client(Socket socket) {
 		updates = new LinkedBlockingQueue<Map<String, Object>>();
@@ -44,6 +45,7 @@ public class Client {
 			while ((nextLine = input.readLine()) != null) {
 				@SuppressWarnings("unchecked")
 				Map<String, Object> update = (Map<String, Object>) JSONValue.parse(nextLine.trim());
+				
 				updates.add(update);
 			}
 		} catch (IOException e) {
@@ -70,7 +72,18 @@ public class Client {
 			System.out.println("Processing udpate: " + update);
 			@SuppressWarnings("unchecked")
 			Collection<JSONObject> unitUpdates = (Collection<JSONObject>) update.get("unit_updates");
+			@SuppressWarnings("unchecked")
+			Collection<JSONObject> tileUpdates = (Collection<JSONObject>) update.get("tile_updates");
+			@SuppressWarnings("unchecked")
+			JSONObject gameInfo = (JSONObject) update.get("game_info");		
+			//Instantiate Tile 2D array
+			if(gameInfo != null){				
+				Long width = (Long)gameInfo.get("map_width");
+				Long height = (Long)gameInfo.get("map_height");
+				tiles = new Tile[width.intValue() * 2 + 1][height.intValue() * 2 + 1];
+			}
 			addUnitUpdate(unitUpdates);
+			addTileUpdate(tileUpdates);
 		}
 	}
 
@@ -81,6 +94,22 @@ public class Client {
 			if (!type.equals("base")) {
 				units.put(id, new Unit(unitUpdate));
 			}
+			//System.out.println("Units: \n " + units);
+		});
+	}
+
+	private void addTileUpdate(Collection<JSONObject> tileUpdates) {
+		tileUpdates.forEach((tileUpdate) -> {
+			Long x = (Long) tileUpdate.get("x");
+			Long y = (Long) tileUpdate.get("y");
+			// Boolean visible = (Boolean)tileUpdate.get("visible");
+			// Boolean blocked = (Boolean)tileUpdate.get("blocked");
+			// Object resources = tileUpdate.get("blocked");
+			// Unit[] units = (Unit[])tileUpdate.get("units");
+			Tile tile = new Tile(tileUpdate);
+			tiles[x.intValue() + (tiles.length / 2)][y.intValue() + (tiles[0].length / 2)] = tile;
+		
+			//System.out.println("Units: \n " + units);
 		});
 	}
 
