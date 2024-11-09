@@ -162,12 +162,42 @@ public class Client {
 
 		JSONArray commands = new JSONArray();
 		JSONObject command = new JSONObject();	
+		int[] coords = {unit.x.intValue(), unit.y.intValue()};
+		int[] baseCoords = {0,0};
+		
+		//Check to see if unit is directly next to a resource
+		boolean nextToResource = false;
+		String resourceDirection = "";
+		if(tiles[coords[0] + tiles.length / 2 + 1 ][coords[1]+ tiles[0].length / 2].resources != null){
+			nextToResource = true;
+			resourceDirection = "E";
+		}
+		else if(tiles[coords[0] + tiles.length / 2 -1 ][coords[1]+ tiles[0].length / 2].resources != null){
+			nextToResource = true;
+			resourceDirection = "W";
+		}
+		else if(tiles[coords[0]+ tiles.length / 2][coords[1] + tiles[0].length / 2 + 1].resources != null){
+			nextToResource = true;
+			resourceDirection = "S";
+		}
+		else if(tiles[coords[0]+ tiles.length / 2][coords[1] + tiles[0].length / 2 - 1].resources != null){
+			nextToResource = true;
+			resourceDirection = "N";
+		}
+		if(nextToResource && unit.resource == 0){
+			command.put("command", "GATHER");
+			command.put("unit", unitId);
+			command.put("dir", resourceDirection);
+			commands.add(command);
+			System.out.println("Resource count:" + unit.resource);
 
-		if(unit.resource != null && unit.resource > 0){
-			int[] coords = {unit.x.intValue(), unit.y.intValue()};
-			int[] baseCoords = {0,0};
+		}
 
+		//If the unit has resources
+		else if(unit.resource != null && unit.resource > 0){
+			System.out.println("GO HOME\n\n");
 			if((Math.abs(coords[0] - baseCoords[0]) <= 1) && (Math.abs(coords[1] - baseCoords[1]) == 0) || (Math.abs(coords[0] - baseCoords[0]) == 0) && (Math.abs(coords[1] - baseCoords[1]) <= 1)){
+				System.out.println("DROP\n\n");
 				direction = whereToDrop(coords, baseCoords);			
 				command.put("command", "DROP");
 				command.put("unit", unitId);
@@ -176,6 +206,7 @@ public class Client {
 				commands.add(command);
 			}
 			else{
+				System.out.println("FIND HOME\n\n");
 				direction = findPathToPlace(tiles, coords, baseCoords);
 				command.put("command", "MOVE");
 				command.put("dir", direction);
@@ -185,7 +216,10 @@ public class Client {
 			
 		}
 		else{
-
+			command.put("command", "MOVE");
+			command.put("dir", direction);
+			command.put("unit", unitId);
+			commands.add(command);
 		}
 		return commands;
 	}
@@ -208,6 +242,12 @@ public class Client {
 
 		final int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
+		place[0] = place[0] + grid.length / 2;
+		place[1] = place[1] + grid[0].length / 2;
+
+		start[0] = start[0] + grid.length / 2;
+		start[1] = start[1] + grid[0].length / 2;
+
         int rows = grid.length;
         int cols = grid[0].length;
         Queue<Node> queue = new LinkedList<>();
@@ -225,17 +265,21 @@ public class Client {
 
             // Check if we've reached the base
             if (x == place[0] && y == place[1]) {
-                path.add(new int[]{x, y});
-				int[] direction = path.get(0);
-                if(direction[0] == 0){
-					if(direction[1] == 1)
-						return "N";
-					return "S";
+                //path.add(new int[]{x, y});
+				int[] direction = path.get(1);
+				System.out.println("x: "+ direction[0]);
+				System.out.println("y: "+ direction[1]);
+				System.out.println("x-coords: "+ start[0]);
+				System.out.println("y-coords: "+ start[1]);
+                if(direction[0] - start[0]== 0){
+					if(direction[1] - start[1]== 1)
+						return "S";
+					return "N";
 				}
 				else{
-					if(direction[1] == 1)
-						return "N";
-					return "S";
+					if(direction[0] - start[0]== 1)
+						return "E";
+					return "W";
 				}
             }
 
@@ -243,9 +287,8 @@ public class Client {
             for (int[] direction : directions) {
                 int nx = x + direction[0];
                 int ny = y + direction[1];
-
                 // Check bounds and if the cell is open and not visited
-                if (nx >= 0 && nx < rows && ny >= 0 && ny < cols && grid[nx][ny] != null && grid[nx][ny].blocked == false) {
+                if (nx >= 0 && nx < rows && ny >= 0 && ny < cols && grid[nx][ny] != null && grid[nx][ny].blocked != null && grid[nx][ny].blocked == false) {
                     String posKey = nx + "," + ny;
                     if (!visited.contains(posKey)) {
                         visited.add(posKey);
