@@ -4,16 +4,23 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.StringReader;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+import org.w3c.dom.Node;
 
 public class Client {
 	
@@ -22,7 +29,7 @@ public class Client {
 	LinkedBlockingQueue<Map<String, Object>> updates;
 	Map<Long, Unit> units;
 	Tile[][] tiles;
-	ArrayList<Tile> resourceTiles;
+	ArrayList<Tile> resourceTiles = new ArrayList<Tile>();
 
 	public Client(Socket socket) {
 		updates = new LinkedBlockingQueue<Map<String, Object>>();
@@ -141,26 +148,130 @@ public class Client {
 		
 		for(int i = 0; i < tiles.length; i++){
 			for(int j = 0; j < tiles[0].length; j++){
-				if(tiles[i][j].resources != null){
-					resourceTiles.add(tiles[i][j]);
+				if(tiles[i][j] != null){
+					if(tiles[i][j].resources != null){
+						resourceTiles.add(tiles[i][j]);
+					}
 				}
+				
 			}
 		}
 
 		Unit unit = idleUnits.get((int) Math.floor(Math.random() * idleUnits.size()));
 		Long unitId = unit.id;
-		if(unit.resource != null){
-			
-		}
 
 		JSONArray commands = new JSONArray();
 		JSONObject command = new JSONObject();	
-		command.put("command", "MOVE");
-		command.put("dir", direction);
-		command.put("unit", unitId);
-		commands.add(command);
+
+		if(unit.resource != null && unit.resource > 0){
+			int[] coords = {unit.x.intValue(), unit.y.intValue()};
+			int[] baseCoords = {0,0};
+
+			if((Math.abs(coords[0] - baseCoords[0]) <= 1) && (Math.abs(coords[1] - baseCoords[1]) == 0) || (Math.abs(coords[0] - baseCoords[0]) == 0) && (Math.abs(coords[1] - baseCoords[1]) <= 1)){
+				direction = whereToDrop(coords, baseCoords);			
+				command.put("command", "DROP");
+				command.put("unit", unitId);
+				command.put("dir", direction);
+				command.put("value", unit.resource);
+				commands.add(command);
+			}
+			else{
+				direction = findPathToPlace(tiles, coords, baseCoords);
+				command.put("command", "MOVE");
+				command.put("dir", direction);
+				command.put("unit", unitId);
+				commands.add(command);
+			}
+			
+		}
+		else{
+
+		}
 		return commands;
 	}
+
+	public String whereToDrop(int[] coords, int[] place){
+		if(coords[0] - place[0] == 0){
+			if(coords[1] - place[1] == 1)
+				return "S";
+			return "N";
+		}
+		else{
+			if(coords[0] - place[0] == 1)
+				return "W";
+			return "E";
+		}
+	}
+
+
+	public static String findPathToPlace(Tile[][] grid, int[] start, int[] place) {
+
+		final int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+        int rows = grid.length;
+        int cols = grid[0].length;
+        Queue<Node> queue = new LinkedList<>();
+        Set<String> visited = new HashSet<>();
+
+        // Initialize the queue with the starting position and an empty path
+        queue.offer(new Node(start[0], start[1], new ArrayList<>()));
+        visited.add(start[0] + "," + start[1]);
+
+        while (!queue.isEmpty()) {
+            Node current = queue.poll();
+            int x = current.x;
+            int y = current.y;
+            List<int[]> path = current.path;
+
+            // Check if we've reached the base
+            if (x == place[0] && y == place[1]) {
+                path.add(new int[]{x, y});
+				int[] direction = path.get(0);
+                if(direction[0] == 0){
+					if(direction[1] == 1)
+						return "N";
+					return "S";
+				}
+				else{
+					if(direction[1] == 1)
+						return "N";
+					return "S";
+				}
+            }
+
+            // Explore each cardinal direction
+            for (int[] direction : directions) {
+                int nx = x + direction[0];
+                int ny = y + direction[1];
+
+                // Check bounds and if the cell is open and not visited
+                if (nx >= 0 && nx < rows && ny >= 0 && ny < cols && grid[nx][ny] != null && grid[nx][ny].blocked == false) {
+                    String posKey = nx + "," + ny;
+                    if (!visited.contains(posKey)) {
+                        visited.add(posKey);
+                        List<int[]> newPath = new ArrayList<>(path);
+                        newPath.add(new int[]{x, y});
+                        queue.offer(new Node(nx, ny, newPath));
+                    }
+                }
+            }
+        }
+
+        // If no path is found
+        return null;
+    }
+
+	// Helper class to store node position and path taken to reach it
+    private static class Node {
+        int x, y;
+        List<int[]> path;
+
+        Node(int x, int y, List<int[]> path) {
+            this.x = x;
+            this.y = y;
+            this.path = path;
+        }
+    }
 
 	@SuppressWarnings("unchecked")
 	private void sendCommandListToServer(JSONArray commands) throws IOException {
