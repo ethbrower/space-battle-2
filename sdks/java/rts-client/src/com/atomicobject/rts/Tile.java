@@ -1,4 +1,7 @@
 package com.atomicobject.rts;
+import java.util.ArrayList;
+
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 public class Tile {
@@ -8,7 +11,7 @@ public class Tile {
 	Boolean blocked;
 	Long x;
 	Long y;
-	Object units;
+	ArrayList<EnemyUnit> units;
 
 	public Tile(JSONObject json) {
 		JSONObject resourceJson = (JSONObject)json.get("resources");
@@ -21,7 +24,13 @@ public class Tile {
 		x = (Long) json.get("x");
 		y = (Long) json.get("y");
 		blocked = (Boolean) json.get("blocked");
-		units = (Object) json.get("units");
+		units = new ArrayList<>();
+		JSONArray unitsArray = (JSONArray) json.get("units");
+		if(unitsArray != null) {
+			for (Object unitObj : unitsArray) { 
+				// Assuming EnemyUnit has a constructor that takes a JSONObject 
+				units.add(new EnemyUnit((JSONObject) unitObj)); }
+		}
 		visible = (Boolean) json.get("visible");
 	}
 	

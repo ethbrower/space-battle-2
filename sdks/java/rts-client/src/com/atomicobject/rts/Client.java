@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -30,6 +31,8 @@ public class Client {
 	Map<Long, Unit> units;
 	Tile[][] tiles;
 	ArrayList<Tile> resourceTiles = new ArrayList<Tile>();
+	private PriorityQueue<Unit> priorityUnits;
+
 
 	public Client(Socket socket) {
 		updates = new LinkedBlockingQueue<Map<String, Object>>();
@@ -90,6 +93,7 @@ public class Client {
 				Long width = (Long)gameInfo.get("map_width");
 				Long height = (Long)gameInfo.get("map_height");
 				tiles = new Tile[width.intValue() * 2 + 1][height.intValue() * 2 + 1];
+
 			}
 			addUnitUpdate(unitUpdates);
 			addTileUpdate(tileUpdates);
@@ -118,6 +122,7 @@ public class Client {
 			tiles[x.intValue() + (tiles.length / 2)][y.intValue() + (tiles[0].length / 2)] = tile;
 			//System.out.println("Units: \n " + units);
 		});
+		
 	}
 
 	private void respondWithCommands() throws IOException {
@@ -145,6 +150,12 @@ public class Client {
 				}
 			}
 		}
+		priorityUnits = new PriorityQueue<>(new UnitPriority(tiles));
+		for (Unit unit : idleUnits) {
+			addUnitToPriorityQueue(unit);  // Add each idle unit to the priority queue
+			System.out.println("unit added to queue");
+		}
+	
 		
 		for(int i = 0; i < tiles.length; i++){
 			for(int j = 0; j < tiles[0].length; j++){
@@ -158,38 +169,15 @@ public class Client {
 		}
 		
 		Unit priorityUnit = idleUnits.get((int) Math.floor(Math.random() * idleUnits.size()));
+		
+		if(processPriorityUnits() != null){
+		priorityUnit = processPriorityUnits();
+		System.out.println("we're using a priority unit");
+		}
+		else{
+			System.out.println("we're not using a priority unit");
+		}
 
-
-		for (Unit unit : units.values()) {
-			if (unit.resource != null) {
-				// If the unit has resources, prioritize returning it to base
-				if (priorityUnit == null || unit.getDistanceToBase() > priorityUnit.getDistanceToBase()) {
-					priorityUnit = unit;
-				}
-			}
-		}
-		if (priorityUnit == null) {
-			for (Unit unit_distance : units.values()) {
-				if (unit_distance.resource != null) {
-					// Prioritize the farthest unit 
-					if (priorityUnit == null || unit_distance.getDistanceToBase() > priorityUnit.getDistanceToBase()) {
-						priorityUnit = unit_distance;
-					}
-				}
-			}
-		}
-		for (Unit unit_melee : units.values()) {
-			if (unit_melee.hasEnemyNearby(tiles)) {
-				// If there are enemies, decide whether to engage with melee or ranged attack
-				if (priorityUnit == null || unit_melee.getDistanceToBase() > priorityUnit.getDistanceToBase()) {
-					priorityUnit = unit_melee;
-					// Initiate melee or shooting action based on unit's attack capabilities
-					//initiateCombatAction(unit);
-				}
-			}
-		}
-	
-			
 	
 		Long unitId = priorityUnit.id;
 		JSONArray commands = new JSONArray();
@@ -255,6 +243,19 @@ public class Client {
 		}
 		return commands;
 	}
+
+    public void addUnitToPriorityQueue(Unit unit) {
+        priorityUnits.offer(unit);
+    }
+
+    public Unit processPriorityUnits() {
+        while (!priorityUnits.isEmpty()) {
+            Unit unit = priorityUnits.poll();
+			return unit;
+        }
+				return null;
+    }
+	
 
 	public String whereToDrop(int[] coords, int[] place){
 		if(coords[0] - place[0] == 0){
