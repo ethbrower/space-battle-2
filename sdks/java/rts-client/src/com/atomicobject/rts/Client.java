@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +22,7 @@ public class Client {
 	LinkedBlockingQueue<Map<String, Object>> updates;
 	Map<Long, Unit> units;
 	Tile[][] tiles;
+	ArrayList<Tile> resourceTiles;
 
 	public Client(Socket socket) {
 		updates = new LinkedBlockingQueue<Map<String, Object>>();
@@ -84,17 +86,7 @@ public class Client {
 			}
 			addUnitUpdate(unitUpdates);
 			addTileUpdate(tileUpdates);
-			for(int i = 0; i < tiles.length; i++){
-				for(int j = 0; j < tiles[0].length; j++){
-					if(tiles[i][j] != null){
-						// System.out.println(tiles[i][j].x);
-						// System.out.println(tiles[i][j].y);
-					}
-					else{
-						//System.out.println("null tile");
-					}
-				}
-			}
+
 		}
 	}
 
@@ -118,7 +110,6 @@ public class Client {
 			System.out.println(tile.y);
 			tiles[x.intValue() + (tiles.length / 2)][y.intValue() + (tiles[0].length / 2)] = tile;
 			//System.out.println("Units: \n " + units);
-
 		});
 	}
 
@@ -131,11 +122,36 @@ public class Client {
 
 	@SuppressWarnings("unchecked")
 	private JSONArray buildCommandList() {
+
 		String[] directions = {"N","E","S","W"};
 		String direction = directions[(int) Math.floor(Math.random() * 4)];
 
 		Long[] unitIds = units.keySet().toArray(new Long[units.size()]);
-		Long unitId = unitIds[(int) Math.floor(Math.random() * unitIds.length)];
+
+		
+		ArrayList<Unit> idleUnits = new ArrayList<Unit>();
+		for(int i = 0; i < unitIds.length; i++){
+			Unit unit = units.get(unitIds[i]);
+			if(unit != null){
+				if(unit.status.equals("idle")){
+					idleUnits.add(unit);
+				}
+			}
+		}
+		
+		for(int i = 0; i < tiles.length; i++){
+			for(int j = 0; j < tiles[0].length; j++){
+				if(tiles[i][j].resources != null){
+					resourceTiles.add(tiles[i][j]);
+				}
+			}
+		}
+
+		Unit unit = idleUnits.get((int) Math.floor(Math.random() * idleUnits.size()));
+		Long unitId = unit.id;
+		if(unit.resource != null){
+			
+		}
 
 		JSONArray commands = new JSONArray();
 		JSONObject command = new JSONObject();	

@@ -23,8 +23,6 @@ public class Tile {
 		blocked = (Boolean) json.get("blocked");
 		units = (Object) json.get("units");
 		visible = (Boolean) json.get("visible");
-
-		
 	}
 	
 
