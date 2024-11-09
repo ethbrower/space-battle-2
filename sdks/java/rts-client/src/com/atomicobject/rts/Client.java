@@ -156,10 +156,42 @@ public class Client {
 				
 			}
 		}
+		
+		Unit priorityUnit = idleUnits.get((int) Math.floor(Math.random() * idleUnits.size()));
 
-		Unit unit = idleUnits.get((int) Math.floor(Math.random() * idleUnits.size()));
-		Long unitId = unit.id;
 
+		for (Unit unit : units.values()) {
+			if (unit.resource != null) {
+				// If the unit has resources, prioritize returning it to base
+				if (priorityUnit == null || unit.getDistanceToBase() > priorityUnit.getDistanceToBase()) {
+					priorityUnit = unit;
+				}
+			}
+		}
+		if (priorityUnit == null) {
+			for (Unit unit_distance : units.values()) {
+				if (unit_distance.resource != null) {
+					// Prioritize the farthest unit 
+					if (priorityUnit == null || unit_distance.getDistanceToBase() > priorityUnit.getDistanceToBase()) {
+						priorityUnit = unit_distance;
+					}
+				}
+			}
+		}
+		for (Unit unit_melee : units.values()) {
+			if (unit_melee.hasEnemyNearby(tiles)) {
+				// If there are enemies, decide whether to engage with melee or ranged attack
+				if (priorityUnit == null || unit_melee.getDistanceToBase() > priorityUnit.getDistanceToBase()) {
+					priorityUnit = unit_melee;
+					// Initiate melee or shooting action based on unit's attack capabilities
+					//initiateCombatAction(unit);
+				}
+			}
+		}
+	
+			
+	
+		Long unitId = priorityUnit.id;
 		JSONArray commands = new JSONArray();
 		JSONObject command = new JSONObject();	
 
