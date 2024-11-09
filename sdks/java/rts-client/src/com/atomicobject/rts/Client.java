@@ -102,10 +102,6 @@ public class Client {
 		tileUpdates.forEach((tileUpdate) -> {
 			Long x = (Long) tileUpdate.get("x");
 			Long y = (Long) tileUpdate.get("y");
-			// Boolean visible = (Boolean)tileUpdate.get("visible");
-			// Boolean blocked = (Boolean)tileUpdate.get("blocked");
-			// Object resources = tileUpdate.get("blocked");
-			// Unit[] units = (Unit[])tileUpdate.get("units");
 			Tile tile = new Tile(tileUpdate);
 			tiles[x.intValue() + (tiles.length / 2)][y.intValue() + (tiles[0].length / 2)] = tile;
 		
