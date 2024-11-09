@@ -3,7 +3,7 @@ import org.json.simple.JSONObject;
 
 public class Tile {
 
-	Object resources;
+	TileResource resources;
 	Boolean visible;
 	Boolean blocked;
 	Long x;
@@ -11,7 +11,13 @@ public class Tile {
 	Object units;
 
 	public Tile(JSONObject json) {
-		resources = (Object) json.get("resources");
+		JSONObject resourceJson = (JSONObject)json.get("resources");
+		if(resourceJson != null){
+			resources = new TileResource((resourceJson));	
+		}
+		else{
+			resources = null;
+		}
 		x = (Long) json.get("x");
 		y = (Long) json.get("y");
 		blocked = (Boolean) json.get("blocked");
